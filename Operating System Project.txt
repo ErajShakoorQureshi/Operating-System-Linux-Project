@@ -1,0 +1,243 @@
+#!/bin/bash
+
+# === Styled Dividers and Colors ===
+divider="====================================="
+bold_divider="****************************************"
+red="\033[1;31m"
+green="\033[1;32m"
+blue="\033[1;34m"
+cyan="\033[1;36m"
+yellow="\033[1;33m"
+magenta="\033[1;35m"
+white="\033[1;37m"
+bright_blue="\033[1;94m"
+bright_green="\033[1;92m"
+bright_cyan="\033[1;96m"
+reset="\033[0m"
+
+# === File to store movie details and bookings ===
+movie_file="movies.txt"
+booking_file="bookings.txt"
+
+# === Initialize files ===
+if [[ ! -f $movie_file ]]; then
+    touch $movie_file
+fi
+if [[ ! -f $booking_file ]]; then
+    touch $booking_file
+fi
+
+# === Styled Header ===
+styled_header() {
+    echo -e "${bright_blue}$bold_divider${reset}"
+    echo -e "${bright_green}?? WELCOME TO CINEMA MANAGEMENT SYSTEM ??${reset}"
+    echo -e "${bright_blue}$bold_divider${reset}"
+}
+
+# === Main Menu ===
+main_menu() {
+    clear
+    styled_header
+    echo -e "${bright_green}1.${reset} ?? ${yellow}Admin Panel${reset}"
+    echo -e "${bright_cyan}2.${reset} ?? ${green}User Panel${reset}"
+    echo -e "${red}3.${reset} ?? ${red}Exit${reset}"
+    echo -e "${bright_blue}$divider${reset}"
+    read -p "Enter your choice: " choice
+    case $choice in
+        1) admin_menu ;;
+        2) user_menu ;;
+        3) echo -e "${yellow}Goodbye!${reset}" && exit 0 ;;
+        *) echo -e "${red}Invalid choice! Please try again.${reset}" && sleep 1 && main_menu ;;
+    esac
+}
+
+# === Admin Panel ===
+admin_menu() {
+    clear
+    echo -e "${cyan}$bold_divider${reset}"
+    echo -e "?? ${magenta}ADMIN PANEL${reset} ??"
+    echo -e "${cyan}$bold_divider${reset}"
+    echo -e "${green}1.${reset} ? Add a Movie"
+    echo -e "${yellow}2.${reset} ?? View Movies"
+    echo -e "${magenta}3.${reset} ??  Edit Movie Details"
+    echo -e "${red}4.${reset} ???  Delete a Movie"
+    echo -e "${blue}5.${reset} ?? Back to Main Menu"
+    echo -e "${cyan}$divider${reset}"
+    read -p "Enter your choice: " admin_choice
+    case $admin_choice in
+        1) add_movie ;;
+        2) view_movies; read -p "Press Enter to go back." && admin_menu ;;
+        3) edit_movie ;;
+        4) delete_movie ;;
+        5) main_menu ;;
+        *) echo -e "${red}Invalid choice! Try again.${reset}" && sleep 1 && admin_menu ;;
+    esac
+}
+
+# === Add a Movie ===
+add_movie() {
+    clear
+    echo -e "${green}Add a New Movie${reset}"
+    echo -e "$divider"
+    read -p "Enter movie name: " movie_name
+    read -p "Enter available seats: " seats
+    read -p "Enter movie timings (e.g., 3:00 PM, 6:00 PM): " timings
+    echo "$movie_name,$seats,\"$timings\"" >> $movie_file
+    echo -e "${bright_green}Movie added successfully!${reset}"
+    sleep 1
+    admin_menu
+}
+
+# === View Movies ===
+view_movies() {
+    echo -e "${yellow}Available Movies${reset}"
+    echo -e "$divider"
+    if [[ ! -s $movie_file ]]; then
+        echo -e "${red}No movies available.${reset}"
+    else
+        printf "${bright_cyan}%-20s%-10s%-20s${reset}\n" "Movie Name" "Seats" "Timings"
+        echo -e "$divider"
+        while IFS=',' read -r name seats timings; do
+            printf "${white}%-20s${reset}%-10s%-20s\n" "$name" "$seats" "$timings"
+        done < $movie_file
+    fi
+    echo -e "$divider"
+}
+
+# === Edit Movie ===
+edit_movie() {
+    clear
+    echo -e "${magenta}Edit Movie Details${reset}"
+    echo -e "$divider"
+    view_movies
+    read -p "Enter the name of the movie to edit: " movie_name
+    if grep -q "^$movie_name," $movie_file; then
+        read -p "Enter new available seats: " seats
+        read -p "Enter new timings: " timings
+        sed -i "s/^$movie_name,.*/$movie_name,$seats,\"$timings\"/" $movie_file
+        echo -e "${bright_green}Movie details updated successfully!${reset}"
+    else
+        echo -e "${red}Movie not found!${reset}"
+    fi
+    sleep 1
+    admin_menu
+}
+
+# === Delete Movie ===
+delete_movie() {
+    clear
+    echo -e "${red}Delete a Movie${reset}"
+    echo -e "$divider"
+    view_movies
+    read -p "Enter the name of the movie to delete: " movie_name
+    if grep -q "^$movie_name," $movie_file; then
+        read -p "Are you sure you want to delete '$movie_name'? (y/n): " confirm
+        if [[ $confirm == "y" || $confirm == "Y" ]]; then
+            grep -v "^$movie_name," $movie_file > temp.txt && mv temp.txt $movie_file
+            echo -e "${bright_green}Movie deleted successfully!${reset}"
+        else
+            echo -e "${yellow}Deletion cancelled.${reset}"
+        fi
+    else
+        echo -e "${red}Movie not found!${reset}"
+    fi
+    sleep 1
+    admin_menu
+}
+
+# === User Panel ===
+user_menu() {
+    clear
+    echo -e "${bright_cyan}$bold_divider${reset}"
+    echo -e "?? ${bright_blue}USER PANEL${reset} ??"
+    echo -e "${bright_cyan}$bold_divider${reset}"
+    echo -e "${yellow}1.${reset} ?? View Movies"
+    echo -e "${green}2.${reset} ???  Book Tickets"
+    echo -e "${blue}3.${reset} ?? Search Movies"
+    echo -e "${magenta}4.${reset} ?? View Booking Summary"
+    echo -e "${red}5.${reset} ?? Back to Main Menu"
+    echo -e "${bright_cyan}$divider${reset}"
+    read -p "Enter your choice: " user_choice
+    case $user_choice in
+        1) view_movies; read -p "Press Enter to go back." && user_menu ;;
+        2) book_tickets ;;
+        3) search_movies ;;
+        4) view_bookings ;;
+        5) main_menu ;;
+        *) echo -e "${red}Invalid choice! Try again.${reset}" && sleep 1 && user_menu ;;
+    esac
+}
+
+# === Book Tickets ===
+book_tickets() {
+    clear
+    echo -e "${green}??? Book Tickets${reset}"
+    echo -e "$divider"
+    view_movies
+    read -p "Enter the name of the movie you want to book tickets for: " movie_name
+    # Check if the movie exists
+    if grep -q "^$movie_name," $movie_file; then
+        # Get the available seats
+        available_seats=$(grep "^$movie_name," $movie_file | cut -d',' -f2)
+        if [[ $available_seats -gt 0 ]]; then
+            # Ask user for number of tickets
+            read -p "Enter the number of tickets: " num_tickets
+            if (( num_tickets <= available_seats )); then
+                # Update the available seats in the movie file
+                new_seats=$((available_seats - num_tickets))
+                sed -i "s/^$movie_name,$available_seats/ $movie_name,$new_seats/" $movie_file
+                # Save the booking in the booking file
+                echo "$movie_name,$num_tickets" >> $booking_file
+                echo -e "${bright_green}Booking successful! You have booked $num_tickets ticket(s).${reset}"
+            else
+                echo -e "${red}Not enough seats available! Only $available_seats seats are left.${reset}"
+            fi
+        else
+            echo -e "${red}Sorry, no seats available for this movie.${reset}"
+        fi
+    else
+        echo -e "${red}Movie not found! Please enter a valid movie name.${reset}"
+    fi
+    sleep 1
+    user_menu
+}
+
+# === Search Movies ===
+search_movies() {
+    clear
+    echo -e "${blue}?? Search Movies${reset}"
+    echo -e "$divider"
+    read -p "Enter the movie name to search for: " search_term
+    if grep -iq "$search_term" $movie_file; then
+        echo -e "${yellow}Matching Movies:${reset}"
+        echo -e "$divider"
+        grep -i "$search_term" $movie_file | while IFS=',' read -r name seats timings; do
+            echo -e "${white}$name - Seats: $seats, Timings: $timings${reset}"
+        done
+    else
+        echo -e "${red}No movies found matching '$search_term'.${reset}"
+    fi
+    echo -e "$divider"
+    read -p "Press Enter to go back." && user_menu
+}
+
+# === View Booking Summary ===
+view_bookings() {
+    clear
+    echo -e "${magenta}Booking Summary${reset}"
+    echo -e "$divider"
+    if [[ ! -s $booking_file ]]; then
+        echo -e "${red}No bookings found.${reset}"
+    else
+        echo -e "${yellow}Your Bookings:${reset}"
+        while IFS=',' read -r movie tickets; do
+            echo -e "${white}Movie: $movie - Tickets: $tickets${reset}"
+        done < $booking_file
+    fi
+    echo -e "$divider"
+    read -p "Press Enter to go back." && user_menu
+}
+
+# Start the script
+main_menu
+
